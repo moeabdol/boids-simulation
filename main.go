@@ -14,10 +14,8 @@
 *
 * Copyright (C) Mohammed Saed, 2022
  */
-package boid
+package main
 
-type Boid struct {
-	id       int
-	position Vector2D
-	velocity Vector2D
-}
+const (
+	screenWidth, screenHeight int = 640, 360
+)
