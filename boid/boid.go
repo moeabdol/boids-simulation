@@ -45,10 +45,10 @@ func (b *Boid) moveOnePixel(screenWidth, screenHeight float64) {
 	next := b.Position.Add(b.Velocity)
 	b.Position = next
 
-	if next.X > screenWidth || next.X < 0 {
+	if next.X >= screenWidth || next.X <= 0 {
 		b.Velocity = Vector2D{X: -b.Velocity.X, Y: b.Velocity.Y}
 	}
-	if next.Y > screenHeight || next.Y < 0 {
+	if next.Y >= screenHeight || next.Y <= 0 {
 		b.Velocity = Vector2D{X: b.Velocity.X, Y: -b.Velocity.Y}
 	}
 }
