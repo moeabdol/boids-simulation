@@ -22,40 +22,62 @@ import (
 
 type Boid struct {
 	ID       int
-	Position Vector2D
-	Velocity Vector2D
+	Position vector2D
+	Velocity vector2D
 }
 
-func CreateBoid(bid int, screenWidth, screenHeight float64) *Boid {
+func CreateBoid(bid int, boidMap [][]int) *Boid {
+	screenWidth := len(boidMap[0])
+	screenHeight := len(boidMap)
+
 	boid := &Boid{
 		ID: bid,
-		Position: Vector2D{
-			X: rand.Float64() * screenWidth,
-			Y: rand.Float64() * screenHeight,
+		Position: vector2D{
+			X: rand.Float64() * float64(screenWidth),
+			Y: rand.Float64() * float64(screenHeight),
 		},
-		Velocity: Vector2D{
+		Velocity: vector2D{
 			X: (rand.Float64() * 2) - 1.0,
 			Y: (rand.Float64() * 2) - 1.0,
 		},
 	}
+
+	boidMap[int(boid.Position.Y)][int(boid.Position.X)] = boid.ID
 	return boid
 }
 
-func (b *Boid) moveOnePixel(screenWidth, screenHeight float64) {
-	next := b.Position.Add(b.Velocity)
-	b.Position = next
-
-	if next.X >= screenWidth || next.X <= 0 {
-		b.Velocity = Vector2D{X: -b.Velocity.X, Y: b.Velocity.Y}
-	}
-	if next.Y >= screenHeight || next.Y <= 0 {
-		b.Velocity = Vector2D{X: b.Velocity.X, Y: -b.Velocity.Y}
-	}
+func (boid *Boid) calculateAcceleration() vector2D {
+	accel := vector2D{X: 0, Y: 0}
+	return accel
 }
 
-func (b *Boid) Start(screenWidth, screenHeight float64) {
+func (boid *Boid) moveOne(boidMap [][]int) {
+	screenWidth := len(boidMap[0])
+	screenHeight := len(boidMap)
+
+	// Calculate acceleration
+	boid.Velocity = boid.Velocity.add(boid.calculateAcceleration()).limit(-1, 1)
+
+	// Determine next move and flip velocity if at edge of screen
+	next := boid.Position.add(boid.Velocity)
+	if next.X >= float64(screenWidth) || next.X <= 0 {
+		boid.Velocity = vector2D{X: -boid.Velocity.X, Y: boid.Velocity.Y}
+		next = boid.Position.add(boid.Velocity)
+	}
+	if next.Y >= float64(screenHeight) || next.Y <= 0 {
+		boid.Velocity = vector2D{X: boid.Velocity.X, Y: -boid.Velocity.Y}
+		next = boid.Position.add(boid.Velocity)
+	}
+
+	// Reset boID map to new boID position
+	boidMap[int(boid.Position.Y)][int(boid.Position.X)] = -1
+	boid.Position = next
+	boidMap[int(boid.Position.Y)][int(boid.Position.X)] = boid.ID
+}
+
+func (boid *Boid) Start(boidMap [][]int) {
 	for {
-		b.moveOnePixel(screenWidth, screenHeight)
+		boid.moveOne(boidMap)
 		time.Sleep(5 * time.Millisecond)
 	}
 }

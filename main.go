@@ -24,13 +24,16 @@ import (
 )
 
 const (
-	screenWidth, screenHeight     = 640, 360
-	boidCount                 int = 500
+	screenWidth, screenHeight = 640, 360
+	boidCount                 = 500
+	viewRadius                = 13
+	adjustRage                = 0.015
 )
 
 var (
-	green color.RGBA = color.RGBA{10, 255, 50, 255}
-	boids [boidCount]*boid.Boid
+	green   color.RGBA = color.RGBA{10, 255, 50, 255}
+	boids   [boidCount]*boid.Boid
+	boidMap [][]int
 )
 
 type Game struct{}
@@ -52,13 +55,27 @@ func (g *Game) Layout(_, _ int) (w, h int) {
 	return screenWidth, screenHeight
 }
 
-func main() {
-	for i := 0; i < boidCount; i++ {
-		boid := boid.CreateBoid(i, screenWidth, screenHeight)
-		boids[i] = boid
-		go boid.Start(screenWidth, screenHeight)
+func init() {
+	// Initialize boidMap with -1s
+	boidMap = make([][]int, screenHeight)
+	for i := 0; i < screenHeight; i++ {
+		boidMap[i] = make([]int, screenWidth)
+	}
+	for i := 0; i < screenHeight; i++ {
+		for j := 0; j < screenWidth; j++ {
+			boidMap[i][j] = -1
+		}
 	}
 
+	// Create boids
+	for i := 0; i < boidCount; i++ {
+		boid := boid.CreateBoid(i, boidMap)
+		boids[i] = boid
+		go boid.Start(boidMap)
+	}
+}
+
+func main() {
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Boids in a box")
 	if err := ebiten.RunGame(&Game{}); err != nil {
