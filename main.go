@@ -20,20 +20,19 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/moeabdol/boids-simulation/boid"
 )
 
 const (
 	screenWidth, screenHeight = 640, 360
 	boidCount                 = 500
-	viewRadius                = 13
-	adjustRage                = 0.015
 )
 
 var (
-	green   color.RGBA = color.RGBA{10, 255, 50, 255}
-	boids   [boidCount]*boid.Boid
-	boidMap [][]int
+	green      color.RGBA = color.RGBA{10, 255, 50, 255}
+	boids      [boidCount]*Boid
+	boidMap    [screenWidth][screenHeight]int
+	viewRadius = 13.0
+	adjustRate = 0.015
 )
 
 type Game struct{}
@@ -44,10 +43,10 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	for _, boid := range boids {
-		screen.Set(int(boid.Position.X+1), int(boid.Position.Y), green)
-		screen.Set(int(boid.Position.X-1), int(boid.Position.Y), green)
-		screen.Set(int(boid.Position.X), int(boid.Position.Y+1), green)
-		screen.Set(int(boid.Position.X), int(boid.Position.Y-1), green)
+		screen.Set(int(boid.position.x+1), int(boid.position.y), green)
+		screen.Set(int(boid.position.x-1), int(boid.position.y), green)
+		screen.Set(int(boid.position.x), int(boid.position.y+1), green)
+		screen.Set(int(boid.position.x), int(boid.position.y-1), green)
 	}
 }
 
@@ -57,21 +56,17 @@ func (g *Game) Layout(_, _ int) (w, h int) {
 
 func init() {
 	// Initialize boidMap with -1s
-	boidMap = make([][]int, screenHeight)
-	for i := 0; i < screenHeight; i++ {
-		boidMap[i] = make([]int, screenWidth)
-	}
-	for i := 0; i < screenHeight; i++ {
-		for j := 0; j < screenWidth; j++ {
+	for i := 0; i < screenWidth; i++ {
+		for j := 0; j < screenHeight; j++ {
 			boidMap[i][j] = -1
 		}
 	}
 
 	// Create boids
 	for i := 0; i < boidCount; i++ {
-		boid := boid.CreateBoid(i, boidMap)
+		boid := CreateBoid(i)
 		boids[i] = boid
-		go boid.Start(boidMap)
+		go boid.Start()
 	}
 }
 
