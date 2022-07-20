@@ -44,12 +44,22 @@ func CreateBoid(bid int) *Boid {
 	return boid
 }
 
+func (boid *Boid) borderBounce(pos, maxBorderPos float64) float64 {
+	if pos < viewRadius {
+		return 1 / pos
+	} else if pos > maxBorderPos-viewRadius {
+		return 1 / (pos - maxBorderPos)
+	}
+	return 0.0
+}
+
 func (boid *Boid) calculateAcceleration() vector2D {
 	upper, lower := boid.position.addV(viewRadius), boid.position.addV(-viewRadius)
-	avgPosition, avgVelocity := vector2D{x: 0, y: 0}, vector2D{x: 0, y: 0}
+	avgPosition, avgVelocity, separation := vector2D{x: 0, y: 0}, vector2D{x: 0, y: 0}, vector2D{x: 0, y: 0}
 	count := 0.0
 
-	lock.Lock()
+	// Sum position and velocity for all boids within the boid map
+	rwlock.RLock()
 	for i := math.Max(lower.x, 0); i <= math.Min(upper.x, screenWidth); i++ {
 		for j := math.Max(lower.y, 0); j <= math.Min(upper.y, screenHeight); j++ {
 			if otherBoidID := boidMap[int(i)][int(j)]; otherBoidID != -1 && otherBoidID != boid.id {
@@ -57,43 +67,39 @@ func (boid *Boid) calculateAcceleration() vector2D {
 					count++
 					avgPosition = avgPosition.add(boids[otherBoidID].position)
 					avgVelocity = avgVelocity.add(boids[otherBoidID].velocity)
+					separation = separation.add(boid.position.subtract(boids[otherBoidID].position).divideV(dist))
 				}
 			}
 		}
 	}
-	lock.Unlock()
+	rwlock.RUnlock()
 
-	accel := vector2D{0, 0}
+	// Calculate alignment, cohesion
+	accel := vector2D{
+		x: boid.borderBounce(boid.position.x, screenWidth),
+		y: boid.borderBounce(boid.position.y, screenHeight),
+	}
 	if count > 0 {
 		avgPosition, avgVelocity = avgPosition.divideV(count), avgVelocity.divideV(count)
 		accelAlignment := avgVelocity.subtract(boid.velocity).multiplyV(adjustRate)
 		accelCohesion := avgPosition.subtract(boid.position).multiplyV(adjustRate)
-		accel = accel.add(accelAlignment).add(accelCohesion)
+		accelSeparation := separation.multiplyV(adjustRate)
+		accel = accel.add(accelAlignment).add(accelCohesion).add(accelSeparation)
 	}
 	return accel
 }
 
 func (boid *Boid) moveOne() {
 	// Calculate acceleration
-	boid.velocity = boid.velocity.add(boid.calculateAcceleration()).limit(-1, 1)
+	accel := boid.calculateAcceleration()
 
-	lock.Lock()
-	// Determine next move and flip velocity if at edge of screen
-	next := boid.position.add(boid.velocity)
-	if next.x >= float64(screenWidth) || next.x <= 0 {
-		boid.velocity = vector2D{x: -boid.velocity.x, y: boid.velocity.y}
-		next = boid.position.add(boid.velocity)
-	}
-	if next.y >= float64(screenHeight) || next.y <= 0 {
-		boid.velocity = vector2D{x: boid.velocity.x, y: -boid.velocity.y}
-		next = boid.position.add(boid.velocity)
-	}
-
-	// Reset boID map to new boID position
+	// Reset boid map to the new boid position
+	rwlock.Lock()
+	boid.velocity = boid.velocity.add(accel).limit(-1, 1)
 	boidMap[int(boid.position.x)][int(boid.position.y)] = -1
-	boid.position = next
+	boid.position = boid.position.add(boid.velocity)
 	boidMap[int(boid.position.x)][int(boid.position.y)] = boid.id
-	lock.Unlock()
+	rwlock.Unlock()
 }
 
 func (boid *Boid) Start() {

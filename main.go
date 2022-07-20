@@ -27,14 +27,14 @@ const (
 	screenWidth, screenHeight = 640, 360
 	boidCount                 = 500
 	viewRadius                = 13
-	adjustRate                = 0.015
+	adjustRate                = 1
 )
 
 var (
 	green   color.RGBA = color.RGBA{10, 255, 50, 255}
 	boids   [boidCount]*Boid
 	boidMap [screenWidth][screenHeight]int
-	lock    = sync.Mutex{}
+	rwlock  = sync.RWMutex{}
 )
 
 type Game struct{}
