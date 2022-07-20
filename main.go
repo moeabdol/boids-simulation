@@ -27,7 +27,7 @@ const (
 	screenWidth, screenHeight = 640, 360
 	boidCount                 = 500
 	viewRadius                = 13
-	adjustRate                = 1
+	adjustRate                = 0.015
 )
 
 var (
